@@ -31,11 +31,11 @@ A robust, full-stack credit scoring system designed to evaluate Core Banking Sys
 
 ### 1. Database Configuration
 
-Ensure PostgreSQL is running locally. Create a database named `credit_engine_db`.
+Ensure PostgreSQL is running locally. Create a database named `credit_scoring`.
 Update your `credit_backend/database.py` with your active pgAdmin credentials:
 
 ```python
-DATABASE_URL = "postgresql+psycopg2://postgres:YOUR_PASSWORD@localhost:5432/credit_engine_db"
+DATABASE_URL = "postgresql+psycopg2://postgres:YOUR_PASSWORD@localhost:5432/credit_scoring"
 
 cd credit_backend
 python -m venv .venv
