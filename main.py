@@ -21,7 +21,7 @@ app.add_middleware(
 )
 
 DB_CONFIG = {
-    "dbname": "credit_engine_db",
+    "dbname": "credit_scoring",
     "user": "postgres",
     "password": "samael",
     "host": "localhost",
