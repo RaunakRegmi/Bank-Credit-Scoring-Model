@@ -1,0 +1,313 @@
+def calculate_credit_score(customer):
+    score = 0
+
+    # --------------------------------------------------
+    # 1. NAME
+    # --------------------------------------------------
+    # Name is only for identification.
+    # No score is assigned.
+
+    # --------------------------------------------------
+    # 2. AGE - MAX 50
+    # --------------------------------------------------
+    age = customer["age"]
+
+    if age < 18:
+        age_score = 0
+    elif age <= 24:
+        age_score = 25
+    elif age <= 34:
+        age_score = 35
+    elif age <= 44:
+        age_score = 45
+    elif age <= 54:
+        age_score = 50
+    elif age <= 64:
+        age_score = 40
+    else:
+        age_score = 30
+
+    score += age_score
+
+    # --------------------------------------------------
+    # 3. MARITAL STATUS - MAX 20
+    # --------------------------------------------------
+    marital_status = customer["marital_status"].lower()
+
+    marital_scores = {
+        "married": 20,
+        "unmarried": 16,
+        "single": 16,
+        "widowed": 16,
+        "divorced": 14,
+        "separated": 14
+    }
+
+    marital_score = marital_scores.get(marital_status, 16)
+    score += marital_score
+
+    # --------------------------------------------------
+    # 4. SALARY - MAX 230
+    # --------------------------------------------------
+    salary = customer["salary"]
+
+    if salary < 15000:
+        salary_score = 30
+    elif salary < 25000:
+        salary_score = 70
+    elif salary < 40000:
+        salary_score = 110
+    elif salary < 60000:
+        salary_score = 150
+    elif salary < 80000:
+        salary_score = 180
+    elif salary < 100000:
+        salary_score = 205
+    elif salary < 150000:
+        salary_score = 220
+    else:
+        salary_score = 230
+
+    score += salary_score
+
+    # --------------------------------------------------
+    # 5. DEPENDENTS - MAX 80
+    # --------------------------------------------------
+    dependents = customer["dependents"]
+
+    if dependents == 0:
+        dependent_score = 80
+    elif dependents == 1:
+        dependent_score = 70
+    elif dependents == 2:
+        dependent_score = 60
+    elif dependents == 3:
+        dependent_score = 45
+    elif dependents == 4:
+        dependent_score = 30
+    else:
+        dependent_score = 15
+
+    score += dependent_score
+
+    # --------------------------------------------------
+    # 6. INCOMING MONEY - MAX 220
+    # --------------------------------------------------
+    # regular_months = number of months with
+    # consistent incoming money during last 6 months
+
+    regular_months = customer["regular_income_months"]
+
+    if regular_months == 0:
+        incoming_score = 0
+    elif regular_months <= 2:
+        incoming_score = 40
+    elif regular_months <= 4:
+        incoming_score = 110
+    elif regular_months == 5:
+        incoming_score = 165
+    else:
+        incoming_score = 220
+
+    score += incoming_score
+
+    # --------------------------------------------------
+    # 7. OUTGOING MONEY - MAX 220
+    # --------------------------------------------------
+    incoming = customer["monthly_incoming"]
+    outgoing = customer["monthly_outgoing"]
+
+    if incoming <= 0:
+        outgoing_score = 0
+    else:
+        expense_ratio = outgoing / incoming
+
+        if expense_ratio <= 0.20:
+            outgoing_score = 220
+        elif expense_ratio <= 0.35:
+            outgoing_score = 195
+        elif expense_ratio <= 0.50:
+            outgoing_score = 165
+        elif expense_ratio <= 0.60:
+            outgoing_score = 130
+        elif expense_ratio <= 0.70:
+            outgoing_score = 90
+        elif expense_ratio <= 0.85:
+            outgoing_score = 45
+        else:
+            outgoing_score = 15
+
+    score += outgoing_score
+
+    # --------------------------------------------------
+    # 8. SPOUSE - MAX 20
+    # --------------------------------------------------
+    spouse = customer["spouse"]
+
+    if spouse == "none":
+        spouse_score = 16
+    elif spouse == "present":
+        spouse_score = 18
+    elif spouse == "co_borrower":
+        spouse_score = 20
+    else:
+        spouse_score = 16
+
+    score += spouse_score
+
+    # --------------------------------------------------
+    # 9. SPOUSE WORKING - MAX 30
+    # --------------------------------------------------
+    spouse_working = customer["spouse_working"]
+
+    if spouse_working == "no_spouse":
+        spouse_working_score = 15
+    elif spouse_working == "not_working":
+        spouse_working_score = 15
+    elif spouse_working == "unverified":
+        spouse_working_score = 20
+    elif spouse_working == "verified":
+        spouse_working_score = 30
+    else:
+        spouse_working_score = 15
+
+    score += spouse_working_score
+
+    # --------------------------------------------------
+    # 10. OCCUPATION - MAX 70
+    # --------------------------------------------------
+    occupation_stability = customer["occupation_stability"]
+
+    occupation_scores = {
+        "no_verified_income": 0,
+        "irregular": 25,
+        "regular": 45,
+        "stable_6_11_months": 60,
+        "stable_12_plus_months": 70
+    }
+
+    occupation_score = occupation_scores.get(
+        occupation_stability, 0
+    )
+
+    score += occupation_score
+
+    # --------------------------------------------------
+    # 11. RESIDENTIAL ADDRESS - MAX 20
+    # --------------------------------------------------
+    # This should ideally be based on an approved,
+    # objective bank-defined residential risk/verification
+    # classification rather than "luxury" alone.
+
+    residence_area = customer["residence_area"]
+
+    area_scores = {
+        "unverified": 0,
+        "verified": 10,
+        "established": 15,
+        "approved_low_risk_area": 20
+    }
+
+    address_score = area_scores.get(residence_area, 0)
+    score += address_score
+
+    # --------------------------------------------------
+    # 12. RENT / HOUSE - MAX 40
+    # --------------------------------------------------
+    housing_cost = customer["monthly_housing_cost"]
+
+    if incoming <= 0:
+        housing_score = 0
+    else:
+        housing_ratio = housing_cost / incoming
+
+        if housing_ratio <= 0.10:
+            housing_score = 40
+        elif housing_ratio <= 0.20:
+            housing_score = 35
+        elif housing_ratio <= 0.30:
+            housing_score = 30
+        elif housing_ratio <= 0.40:
+            housing_score = 20
+        elif housing_ratio <= 0.50:
+            housing_score = 10
+        else:
+            housing_score = 5
+
+    score += housing_score
+
+    # --------------------------------------------------
+    # FINAL SCORE
+    # --------------------------------------------------
+
+    return score
+
+
+def get_risk_category(score):
+
+    if score >= 850:
+        return "Very Low Risk"
+
+    elif score >= 750:
+        return "Low Risk"
+
+    elif score >= 650:
+        return "Moderate Risk"
+
+    elif score >= 500:
+        return "High Risk"
+
+    else:
+        return "Very High Risk"
+
+
+# ======================================================
+# EXAMPLE CUSTOMER
+# ======================================================
+
+customer = {
+
+    "name": "Ram Sharma",
+
+    "age": 42,
+
+    "marital_status": "married",
+
+    "salary": 75000,
+
+    "dependents": 2,
+
+    "regular_income_months": 6,
+
+    "monthly_incoming": 85000,
+
+    "monthly_outgoing": 30000,
+
+    "spouse": "present",
+
+    "spouse_working": "verified",
+
+    "occupation_stability": "stable_12_plus_months",
+
+    "residence_area": "established",
+
+    "monthly_housing_cost": 12000
+}
+
+
+# Calculate score
+
+credit_score = calculate_credit_score(customer)
+
+risk = get_risk_category(credit_score)
+
+
+print("--------------------------------")
+print("      CREDIT SCORE ENGINE")
+print("--------------------------------")
+
+print("Customer:", customer["name"])
+print("Credit Score:", credit_score, "/ 1000")
+print("Risk Category:", risk)
+
+print("--------------------------------")
