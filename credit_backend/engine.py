@@ -58,10 +58,26 @@ def calculate_score(customer, config: dict):
         }
     }
 
+    # Calculate Total Score
     total_score = sum(breakdown["financial"].values()) + sum(breakdown["professional"].values()) + sum(breakdown["behavioral"].values())
     
-    approval_limit = config.get("approval_threshold", 650)
-    status = "Approved" if total_score >= approval_limit else "Declined"
-    risk_category = "Very Low Risk" if total_score >= 850 else "Low Risk" if total_score >= 750 else "Moderate Risk" if total_score >= 650 else "High Risk" if total_score >= 500 else "Very High Risk"
+    # NEW DYNAMIC THRESHOLD EVALUATION
+    # Default fallback if bands aren't configured yet
+    default_bands = [
+        {"action": "Approved", "min": 650, "max": 1000, "risk": "Low Risk"},
+        {"action": "Third-Party Verification", "min": 500, "max": 649, "risk": "Moderate Risk"},
+        {"action": "Declined", "min": 0, "max": 499, "risk": "High Risk"}
+    ]
+    
+    threshold_bands = config.get("threshold_bands", default_bands)
+    
+    status = "Declined" # Failsafe
+    risk_category = "Very High Risk"
+    
+    for band in threshold_bands:
+        if band["min"] <= total_score <= band["max"]:
+            status = band["action"]
+            risk_category = band["risk"]
+            break
 
     return total_score, status, risk_category, breakdown

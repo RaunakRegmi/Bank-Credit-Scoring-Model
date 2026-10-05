@@ -8,6 +8,7 @@ import {
   Activity,
   CheckCircle,
   XCircle,
+  AlertCircle,
 } from "lucide-react";
 import {
   Radar,
@@ -62,30 +63,57 @@ export default function FintaraDashboard() {
     }
   };
 
+  // 1. CALCULATE REAL-TIME MAX TOTAL
+  const calculateMaxTotal = (cfg: any) => {
+    if (!cfg) return 0;
+    const getMaxArr = (arr: any) =>
+      Math.max(...(arr || []).map((x: any) => x.score || 0));
+    const getMaxObj = (obj: any) =>
+      Math.max(...Object.values(obj || {}).map((x: any) => Number(x) || 0));
+
+    return (
+      getMaxArr(cfg.age_brackets) +
+      getMaxObj(cfg.marital_status_scores) +
+      getMaxArr(cfg.salary_brackets) +
+      getMaxObj(cfg.dependents_scores) +
+      getMaxObj(cfg.incoming_months_scores) +
+      getMaxArr(cfg.outgoing_ratio_brackets) +
+      getMaxArr(cfg.housing_ratio_brackets) +
+      getMaxObj(cfg.spouse_scores) +
+      getMaxObj(cfg.spouse_working_scores) +
+      getMaxObj(cfg.occupation_scores) +
+      getMaxObj(cfg.address_scores)
+    );
+  };
+
+  const maxTotalScore = calculateMaxTotal(config);
+  const isScoreValid = maxTotalScore === 1000;
+
   const saveConfig = async () => {
+    if (!isScoreValid) {
+      alert("Error: Total maximum score must equal exactly 1000.");
+      return;
+    }
     try {
       await fetch(`${API_BASE}/api/settings/config`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       });
-      alert("Enterprise Configuration Updated!");
+      alert("Enterprise Configuration Updated Successfully!");
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Radar Chart Data formatting
   const getRadarData = () => {
     if (!details) return [];
     const bd =
       typeof details.score_breakdown === "string"
         ? JSON.parse(details.score_breakdown)
         : details.score_breakdown;
-
     const sum = (obj: any) =>
       Object.values(obj).reduce((a: any, b: any) => a + b, 0);
-
     return [
       { category: "Financial", score: sum(bd.financial), fullMark: 500 },
       { category: "Professional", score: sum(bd.professional), fullMark: 100 },
@@ -93,10 +121,70 @@ export default function FintaraDashboard() {
     ];
   };
 
+  // Helper to render Object-based rules (e.g., marital_status_scores)
+  const renderObjectEditor = (title: string, configKey: string) => (
+    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+      <h4 className="font-bold text-sm text-gray-800 mb-3 border-b border-gray-200 pb-2">
+        {title}
+      </h4>
+      <div className="space-y-2">
+        {Object.entries(config[configKey] || {}).map(([key, val]: any) => (
+          <div key={key} className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-600 capitalize">
+              {key.replace(/_/g, " ")}
+            </span>
+            <input
+              type="number"
+              value={val}
+              onChange={(e) => {
+                const newConfig = { ...config };
+                newConfig[configKey][key] = parseInt(e.target.value) || 0;
+                setConfig(newConfig);
+              }}
+              className="w-16 p-1 text-sm border rounded text-right bg-white"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Helper to render Array-based rules (e.g., age_brackets)
+  const renderArrayEditor = (
+    title: string,
+    configKey: string,
+    labelFormat: (max: number) => string,
+  ) => (
+    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+      <h4 className="font-bold text-sm text-gray-800 mb-3 border-b border-gray-200 pb-2">
+        {title}
+      </h4>
+      <div className="space-y-2">
+        {(config[configKey] || []).map((bracket: any, idx: number) => (
+          <div key={idx} className="flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-600">
+              {labelFormat(bracket.max)}
+            </span>
+            <input
+              type="number"
+              value={bracket.score}
+              onChange={(e) => {
+                const newConfig = { ...config };
+                newConfig[configKey][idx].score = parseInt(e.target.value) || 0;
+                setConfig(newConfig);
+              }}
+              className="w-16 p-1 text-sm border rounded text-right bg-white"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
       {/* SIDEBAR */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col">
+      <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0">
         <div className="p-6 flex items-center space-x-3 border-b border-slate-800">
           <div className="bg-blue-600 p-2 rounded-lg">
             <Activity size={24} />
@@ -127,7 +215,7 @@ export default function FintaraDashboard() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 p-8 overflow-y-auto">
-        {/* TAB 1: MAIN LEDGER */}
+        {/* TAB 1: MAIN LEDGER (Unchanged) */}
         {activeTab === "main" && (
           <div className="space-y-6 animate-in fade-in">
             <div className="flex justify-between items-center">
@@ -144,7 +232,6 @@ export default function FintaraDashboard() {
                 Refresh Table
               </button>
             </div>
-
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold">
@@ -167,13 +254,8 @@ export default function FintaraDashboard() {
                       </td>
                       <td className="p-5">
                         <span
-                          className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold ${row.status === "Approved" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
+                          className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold ${row.status === "Approved" ? "bg-emerald-100 text-emerald-700" : row.status === "Declined" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"}`}
                         >
-                          {row.status === "Approved" ? (
-                            <CheckCircle size={14} />
-                          ) : (
-                            <XCircle size={14} />
-                          )}
                           <span>{row.status}</span>
                         </span>
                       </td>
@@ -197,7 +279,7 @@ export default function FintaraDashboard() {
           </div>
         )}
 
-        {/* TAB 2: SCORING DETAILS */}
+        {/* TAB 2: SCORING DETAILS (Unchanged) */}
         {activeTab === "details" && (
           <div className="space-y-6 animate-in fade-in">
             {!details ? (
@@ -233,9 +315,7 @@ export default function FintaraDashboard() {
                     </p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Radar Chart */}
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-1 flex flex-col items-center justify-center h-80">
                     <h3 className="font-bold mb-2 self-start">Risk Geometry</h3>
                     <ResponsiveContainer width="100%" height="100%">
@@ -266,8 +346,6 @@ export default function FintaraDashboard() {
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
-
-                  {/* Profile Breakdowns */}
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-2 overflow-y-auto h-80">
                     <h3 className="font-bold mb-4">Raw Metric Extraction</h3>
                     {["financial", "professional", "behavioral"].map(
@@ -311,43 +389,178 @@ export default function FintaraDashboard() {
           </div>
         )}
 
-        {/* TAB 3: SETTINGS */}
+        {/* TAB 3: UPGRADED SETTINGS */}
         {activeTab === "settings" && config && (
-          <div className="max-w-3xl space-y-6 animate-in fade-in">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-3xl font-bold">Engine Configuration</h2>
-                <p className="text-gray-500 mt-1">
-                  Adjust core scoring thresholds.
-                </p>
+          <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-20">
+            {/* Header */}
+            <div>
+              <h2 className="text-3xl font-bold">Engine Configuration</h2>
+              <p className="text-gray-500 mt-1">
+                Manage threshold bands and comprehensive metric scoring weights.
+              </p>
+            </div>
+
+            {/* Threshold Bands */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold mb-4">
+                Decision Threshold Bands
+              </h3>
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50 text-gray-500">
+                  <tr>
+                    <th className="p-3">Min Score</th>
+                    <th className="p-3">Max Score</th>
+                    <th className="p-3">Outcome Action</th>
+                    <th className="p-3">Risk Category</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(config.threshold_bands || []).map(
+                    (band: any, index: number) => (
+                      <tr key={index}>
+                        <td className="p-3">
+                          <input
+                            type="number"
+                            value={band.min}
+                            onChange={(e) => {
+                              const c = { ...config };
+                              c.threshold_bands[index].min =
+                                parseInt(e.target.value) || 0;
+                              setConfig(c);
+                            }}
+                            className="w-24 p-2 border rounded-md"
+                          />
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="number"
+                            value={band.max}
+                            onChange={(e) => {
+                              const c = { ...config };
+                              c.threshold_bands[index].max =
+                                parseInt(e.target.value) || 0;
+                              setConfig(c);
+                            }}
+                            className="w-24 p-2 border rounded-md"
+                          />
+                        </td>
+                        <td className="p-3">
+                          <select
+                            value={band.action}
+                            onChange={(e) => {
+                              const c = { ...config };
+                              c.threshold_bands[index].action = e.target.value;
+                              setConfig(c);
+                            }}
+                            className="w-full p-2 border rounded-md bg-white"
+                          >
+                            <option value="Approved">Approved</option>
+                            <option value="Third-Party Verification">
+                              Third-Party Verification
+                            </option>
+                            <option value="Declined">Declined</option>
+                          </select>
+                        </td>
+                        <td className="p-3">
+                          <input
+                            type="text"
+                            value={band.risk}
+                            onChange={(e) => {
+                              const c = { ...config };
+                              c.threshold_bands[index].risk = e.target.value;
+                              setConfig(c);
+                            }}
+                            className="w-full p-2 border rounded-md"
+                          />
+                        </td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* All 11 Data Points */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h3 className="text-lg font-bold mb-6">
+                Data Point Weight Allocations
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Behavioral */}
+                {renderArrayEditor(
+                  "Age Brackets",
+                  "age_brackets",
+                  (max) => `Up to Age ${max === 999 ? "Max" : max}`,
+                )}
+                {renderObjectEditor("Marital Status", "marital_status_scores")}
+                {renderObjectEditor("Dependents", "dependents_scores")}
+                {renderObjectEditor("Spouse Details", "spouse_scores")}
+                {renderObjectEditor("Spouse Working", "spouse_working_scores")}
+                {renderObjectEditor("Residence Area", "address_scores")}
+
+                {/* Professional */}
+                {renderObjectEditor(
+                  "Occupation Stability",
+                  "occupation_scores",
+                )}
+
+                {/* Financial */}
+                {renderArrayEditor(
+                  "Salary Brackets",
+                  "salary_brackets",
+                  (max) =>
+                    `Up to ${max === 999999999 ? "Max" : max.toLocaleString()}`,
+                )}
+                {renderObjectEditor(
+                  "Incoming Consistency (Months)",
+                  "incoming_months_scores",
+                )}
+                {renderArrayEditor(
+                  "Outgoing / Incoming Ratio",
+                  "outgoing_ratio_brackets",
+                  (max) =>
+                    `Up to ${max === 999 ? "Max" : (max * 100).toFixed(0)}%`,
+                )}
+                {renderArrayEditor(
+                  "Housing / Incoming Ratio",
+                  "housing_ratio_brackets",
+                  (max) =>
+                    `Up to ${max === 999 ? "Max" : (max * 100).toFixed(0)}%`,
+                )}
+              </div>
+            </div>
+
+            {/* STICKY VALIDATION & SAVE BAR */}
+            <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 p-4 px-8 flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center space-x-4">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Engine Maximum Capacity
+                  </span>
+                  <div
+                    className={`text-2xl font-black ${isScoreValid ? "text-emerald-600" : "text-rose-600"}`}
+                  >
+                    {maxTotalScore}{" "}
+                    <span className="text-gray-400 text-lg">/ 1000 pts</span>
+                  </div>
+                </div>
+                {!isScoreValid && (
+                  <div className="flex items-center space-x-2 text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg text-sm font-medium">
+                    <AlertCircle size={16} />
+                    <span>
+                      The sum of maximums across all 11 fields must equal
+                      exactly 1000.
+                    </span>
+                  </div>
+                )}
               </div>
               <button
                 onClick={saveConfig}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition"
+                disabled={!isScoreValid}
+                className={`px-8 py-3 rounded-lg font-bold text-white transition shadow-sm ${isScoreValid ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed"}`}
               >
-                Save to Engine
+                Save & Deploy Rules
               </button>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Global Approval Threshold
-              </label>
-              <input
-                type="number"
-                value={config.approval_threshold}
-                onChange={(e) =>
-                  setConfig({
-                    ...config,
-                    approval_threshold: parseInt(e.target.value),
-                  })
-                }
-                className="w-1/3 p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              <p className="text-sm text-gray-500 mt-2">
-                Any score below this integer will trigger a strict "Declined"
-                state.
-              </p>
             </div>
           </div>
         )}
