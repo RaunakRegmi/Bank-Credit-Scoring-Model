@@ -39,6 +39,6 @@ class CreditAssessment(Base):
     type_of_good = Column(String(100))
     total_score = Column(Integer)
     risk_category = Column(String(30))
-    status = Column(String(20))
+    status = Column(String(50))
     score_breakdown = Column(JSONB)
     assessed_at = Column(DateTime(timezone=True), server_default=func.now())

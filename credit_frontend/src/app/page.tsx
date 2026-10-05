@@ -106,6 +106,7 @@ export default function FintaraDashboard() {
     }
   };
 
+  // UPDATED: Radar Math now extracts .score from nested object
   const getRadarData = () => {
     if (!details) return [];
     const bd =
@@ -113,7 +114,10 @@ export default function FintaraDashboard() {
         ? JSON.parse(details.score_breakdown)
         : details.score_breakdown;
     const sum = (obj: any) =>
-      Object.values(obj).reduce((a: any, b: any) => a + b, 0);
+      Object.values(obj).reduce(
+        (a: any, b: any) => a + (typeof b === "object" ? b.score : b),
+        0,
+      );
     return [
       { category: "Financial", score: sum(bd.financial), fullMark: 500 },
       { category: "Professional", score: sum(bd.professional), fullMark: 100 },
@@ -215,7 +219,7 @@ export default function FintaraDashboard() {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 p-8 overflow-y-auto">
-        {/* TAB 1: MAIN LEDGER (Unchanged) */}
+        {/* TAB 1: MAIN LEDGER */}
         {activeTab === "main" && (
           <div className="space-y-6 animate-in fade-in">
             <div className="flex justify-between items-center">
@@ -279,7 +283,7 @@ export default function FintaraDashboard() {
           </div>
         )}
 
-        {/* TAB 2: SCORING DETAILS (Unchanged) */}
+        {/* TAB 2: SCORING DETAILS */}
         {activeTab === "details" && (
           <div className="space-y-6 animate-in fade-in">
             {!details ? (
@@ -316,7 +320,7 @@ export default function FintaraDashboard() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-1 flex flex-col items-center justify-center h-80">
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-1 flex flex-col items-center justify-center h-[32rem]">
                     <h3 className="font-bold mb-2 self-start">Risk Geometry</h3>
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart
@@ -346,8 +350,12 @@ export default function FintaraDashboard() {
                       </RadarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-2 overflow-y-auto h-80">
-                    <h3 className="font-bold mb-4">Raw Metric Extraction</h3>
+
+                  {/* UPDATED: Detailed Metric Extraction UI */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-2 overflow-y-auto h-[32rem]">
+                    <h3 className="font-bold mb-4 sticky top-0 bg-white z-10 pb-2">
+                      Detailed Metric Extraction & Reasoning
+                    </h3>
                     {["financial", "professional", "behavioral"].map(
                       (category) => {
                         const bd =
@@ -356,26 +364,53 @@ export default function FintaraDashboard() {
                             : details.score_breakdown;
                         return (
                           <div key={category} className="mb-6 last:mb-0">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3">
                               {category} Profile
                             </h4>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-3">
                               {Object.entries(bd[category]).map(
-                                ([k, v]: any) => (
-                                  <div
-                                    key={k}
-                                    className="flex justify-between p-3 bg-gray-50 rounded-lg"
-                                  >
-                                    <span className="text-sm text-gray-600 capitalize">
-                                      {k
-                                        .replace("_score", "")
-                                        .replace(/_/g, " ")}
-                                    </span>
-                                    <span className="text-sm font-bold text-gray-900">
-                                      +{v}
-                                    </span>
-                                  </div>
-                                ),
+                                ([k, v]: any) => {
+                                  // Handles both legacy int records and new detailed objects securely
+                                  const score =
+                                    typeof v === "object" ? v.score : v;
+                                  const max =
+                                    typeof v === "object" ? v.max : "--";
+                                  const value =
+                                    typeof v === "object" ? v.value : "N/A";
+                                  const reason =
+                                    typeof v === "object"
+                                      ? v.reason
+                                      : "Legacy record without detailed reasoning.";
+
+                                  return (
+                                    <div
+                                      key={k}
+                                      className="flex flex-col p-4 bg-gray-50 rounded-xl border border-gray-100"
+                                    >
+                                      <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm font-bold text-gray-800 capitalize">
+                                          {k
+                                            .replace("_score", "")
+                                            .replace(/_/g, " ")}
+                                        </span>
+                                        <span className="text-sm font-black text-emerald-600">
+                                          +{score}{" "}
+                                          <span className="text-gray-400 font-medium">
+                                            / {max} pts
+                                          </span>
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between items-center text-xs">
+                                        <span className="font-medium bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                                          Value: {value}
+                                        </span>
+                                        <span className="text-right text-gray-500 italic max-w-xs">
+                                          {reason}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                },
                               )}
                             </div>
                           </div>
