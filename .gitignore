@@ -1,2 +1,10 @@
 __pycache__/
 *.pyc
+
+# Local environment overrides (see credit_backend/.env.example)
+.env
+.env.local
+
+# Virtualenvs
+.venv/
+venv/

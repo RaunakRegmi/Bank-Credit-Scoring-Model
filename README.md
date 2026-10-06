@@ -27,33 +27,82 @@ A robust, full-stack credit scoring system designed to evaluate Core Banking Sys
 
 ---
 
+## Backend Layout
+
+The backend is organised into layers, so HTTP routing, business logic, and
+persistence stay separate:
+
+```
+credit_backend/
+├── .env.example            # copy to .env to override any setting
+├── requirements.txt
+└── app/
+    ├── main.py             # app factory, CORS, lifespan startup
+    ├── core/
+    │   ├── config.py       # settings resolved from the environment
+    │   └── security.py     # bcrypt hashing, JWT encode/decode
+    ├── db/
+    │   ├── base.py         # declarative Base
+    │   ├── session.py      # engine + SessionLocal
+    │   ├── models.py       # CBSCustomer, ScoringConfig, CreditAssessment, User
+    │   └── init_db.py      # create tables, seed bootstrap users
+    ├── api/
+    │   ├── deps.py         # get_db, get_current_user, require_admin
+    │   ├── router.py       # aggregates every route module
+    │   └── routes/         # auth, evaluate, dashboard, settings
+    ├── schemas/            # Pydantic request/response models
+    └── services/
+        ├── scoring.py      # the rule engine (pure computation)
+        ├── assessment_service.py
+        └── config_service.py
+```
+
+### API Surface
+
+| Method | Path | Access |
+| --- | --- | --- |
+| `POST` | `/api/auth/login` | Open |
+| `POST` | `/evaluate` | Open (called by the CBS) |
+| `GET` | `/api/dashboard/main` | Any signed-in user |
+| `GET` | `/api/dashboard/details/{assessment_id}` | Any signed-in user |
+| `GET` | `/api/settings/config` | Any signed-in user |
+| `PUT` | `/api/settings/config` | Admin only |
+
+---
+
 ## Local Development Setup
 
-### 1. Database Configuration
+### 1. Database
 
-Ensure PostgreSQL is running locally. Create a database named `credit_scoring`.
-Update your `credit_backend/database.py` with your active pgAdmin credentials:
+Ensure PostgreSQL is running locally and create a database named `credit_scoring`.
+Tables and the bootstrap `admin` / `officer` accounts are created automatically on
+first startup.
 
-```python
-DATABASE_URL = "postgresql+psycopg2://postgres:YOUR_PASSWORD@localhost:5432/credit_scoring"
+### 2. Backend
 
+```bash
 cd credit_backend
 python -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
 
-# Install dependencies
-pip install fastapi uvicorn sqlalchemy psycopg2
+pip install -r requirements.txt
 
-# Run the server
-uvicorn main:app --reload
+# Optional: override the connection string, JWT secret, or seeded passwords.
+# Without a .env file the defaults in app/core/config.py are used.
+cp .env.example .env
 
+uvicorn app.main:app --reload
+```
 
-cd fintara-frontend
+Interactive API docs are then served at <http://localhost:8000/docs>.
 
-# Install dependencies
+### 3. Frontend
+
+```bash
+cd credit_frontend
+
 npm install
-npm install recharts lucide-react
-
-# Run the development server
 npm run dev
 ```
+
+The dashboard expects the API at `http://localhost:8000`.

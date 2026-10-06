@@ -1,0 +1,1 @@
+"""Fintara credit scoring backend."""

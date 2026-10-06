@@ -24,7 +24,7 @@ export default function Sidebar({
         </div>
         <div>
           <h1 className="text-xs font-bold tracking-wider uppercase text-black">
-            Fintara Engine
+            Credit Scoring Engine
           </h1>
           <div className="text-[11px] flex items-center space-x-1.5 text-black/60 mt-0.5">
             <span className="w-2 h-2 rounded-full bg-[#EFAE12]"></span>
