@@ -49,9 +49,9 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     >
       <div className="w-full max-w-md p-8 bg-white text-black rounded-2xl shadow-xl border border-black/10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-[#EFAE12] rounded-xl font-black text-black mb-3 shadow-inner">
+          {/* <div className="inline-flex items-center justify-center w-12 h-12 bg-[#EFAE12] rounded-xl font-black text-black mb-3 shadow-inner">
             F
-          </div>
+          </div> */}
           <h1 className="text-2xl font-bold tracking-tight text-black">
             Fintara
           </h1>

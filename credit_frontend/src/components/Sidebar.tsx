@@ -19,9 +19,9 @@ export default function Sidebar({
   return (
     <aside className="w-64 bg-white text-black flex flex-col shrink-0 border-r border-black/10 shadow-sm z-20">
       <div className="px-6 py-6 border-b border-black/10 flex items-center space-x-3">
-        <div className="w-8 h-8 bg-[#EFAE12] rounded-lg flex items-center justify-center font-black text-black">
+        {/* <div className="w-8 h-8 bg-[#EFAE12] rounded-lg flex items-center justify-center font-black text-black">
           F
-        </div>
+        </div> */}
         <div>
           <h1 className="text-xs font-bold tracking-wider uppercase text-black">
             Credit Scoring Engine
