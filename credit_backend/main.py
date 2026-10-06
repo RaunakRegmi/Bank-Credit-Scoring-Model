@@ -2,8 +2,11 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+import jwt
+import auth
 
-from database import engine, get_db, Base
+from database import engine, get_db, Base, SessionLocal
 import models
 import schemas
 import engine as scoring_engine
@@ -13,6 +16,25 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Core Credit Scoring API (Enterprise Layer)")
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+# Dependency to verify the token on every protected route
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        # Notice we are now using jwt.decode from the pyjwt library
+        payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+    except jwt.PyJWTError: # <--- This is the key fix
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,6 +42,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def startup_event():
+    models.Base.metadata.create_all(bind=engine)
+    
+    db = SessionLocal()
+    if not db.query(models.User).filter(models.User.username == "admin").first():
+        admin = models.User(username="admin", hashed_password=auth.get_password_hash("admin123"), role="admin")
+        officer = models.User(username="officer", hashed_password=auth.get_password_hash("officer123"), role="officer")
+        db.add_all([admin, officer])
+        db.commit()
+    db.close()
+
+@app.post("/api/auth/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    if not user or not auth.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    
+    access_token = auth.create_access_token(data={"sub": user.username, "role": user.role})
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
+
 
 @app.post("/evaluate")
 def evaluate_credit(request: schemas.LoanRequest, db: Session = Depends(get_db)):
@@ -61,7 +105,7 @@ def evaluate_credit(request: schemas.LoanRequest, db: Session = Depends(get_db))
     }
 
 @app.get("/api/dashboard/main")
-def get_main_dashboard(db: Session = Depends(get_db)):
+def get_dashboard(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     assessments = db.query(models.CreditAssessment).order_by(desc(models.CreditAssessment.assessed_at)).all()
     # Format for the UI
     return [{
