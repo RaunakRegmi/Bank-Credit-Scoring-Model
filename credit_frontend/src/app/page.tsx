@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
-const API_BASE = "http://localhost:8000";
+const API_BASE = "http://localhost:8001";
 
 export default function FintaraDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

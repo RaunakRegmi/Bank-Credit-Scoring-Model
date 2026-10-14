@@ -59,14 +59,14 @@ credit_backend/
 
 ### API Surface
 
-| Method | Path | Access |
-| --- | --- | --- |
-| `POST` | `/api/auth/login` | Open |
-| `POST` | `/evaluate` | Open (called by the CBS) |
-| `GET` | `/api/dashboard/main` | Any signed-in user |
-| `GET` | `/api/dashboard/details/{assessment_id}` | Any signed-in user |
-| `GET` | `/api/settings/config` | Any signed-in user |
-| `PUT` | `/api/settings/config` | Admin only |
+| Method | Path                                     | Access                   |
+| ------ | ---------------------------------------- | ------------------------ |
+| `POST` | `/api/auth/login`                        | Open                     |
+| `POST` | `/evaluate`                              | Open (called by the CBS) |
+| `GET`  | `/api/dashboard/main`                    | Any signed-in user       |
+| `GET`  | `/api/dashboard/details/{assessment_id}` | Any signed-in user       |
+| `GET`  | `/api/settings/config`                   | Any signed-in user       |
+| `PUT`  | `/api/settings/config`                   | Admin only               |
 
 ---
 
